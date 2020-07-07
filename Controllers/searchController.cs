@@ -1198,7 +1198,7 @@ namespace Company_Reg.Controllers
                             db.Update(CoInfo);
 
                             var CoMePort = (from Dir in db.MembersPortifolio
-                                            where Dir.company_member_id == mbp.company_member_id
+                                            where Dir.member_id == mbp.member_id
                                             select Dir).FirstOrDefault();
                             if (CoMePort == null)
                             {
