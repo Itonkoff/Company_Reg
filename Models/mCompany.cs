@@ -59,6 +59,10 @@ namespace Company_Reg.Models
 
         public string Payment { get; set; }
 
+        public int HasQuery { get; set; }
+
+        public string Comment { get; set; }
+
     }
 
     public class PostMemo
@@ -117,6 +121,8 @@ namespace Company_Reg.Models
 
         public string objective { get; set; }
         public string objType { get; set; }
+        public int HasQuery { get; set; }
+        public string Comment { get; set; }
     }
 
     public class mDirectorsPotifolio

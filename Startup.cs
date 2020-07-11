@@ -65,7 +65,7 @@ namespace Company_Reg
             app.UseSwagger();
             app.UseSwaggerUI(c =>
             {
-                c.SwaggerEndpoint("/Company/swagger/v1/swagger.json", "V1");
+                c.SwaggerEndpoint("/swagger/v1/swagger.json", "V1");
             });
             app.UseMvc(routes =>
             {

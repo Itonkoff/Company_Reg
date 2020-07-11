@@ -475,7 +475,7 @@ namespace Company_Reg.Controllers
 
                     if (DirInfo != null)
                     {
-                        DirInfo.Examiner = Company.CompanyInfo.Application_Ref;
+                        DirInfo.Examiner = Company.CompanyInfo.Examiner;
                         db.Update(DirInfo);
                     }
 
@@ -649,7 +649,7 @@ namespace Company_Reg.Controllers
                         return Json(new
                         {
                             res = "err",
-                            msg = "Nothing start with this name"
+                            msg = resultStartWith
                         });
                     }
 
