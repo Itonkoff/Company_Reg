@@ -63,6 +63,8 @@ namespace Company_Reg.Models
 
         public string Comment { get; set; }
 
+        public string ExaminerTaskId { get; set; }
+
     }
 
     public class PostMemo

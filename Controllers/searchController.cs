@@ -107,52 +107,106 @@ namespace Company_Reg.Controllers
 
                 using (var db = new db())
                 {
-                    var Allrecords = (from trans in db.SearchInfo
-                                      where trans.Satus == "Pending"
-                                      select trans).ToList();
-                    if (Allrecords.Count >= Tasks.NoOfRecords)
+                    if (Tasks.Service == "Name Search")
                     {
-                        var SearchInfo = (from trans in db.taskss
-                                          where trans._id == Tasks._id
+                        var Allrecords = (from trans in db.SearchInfo
+                                          where trans.Satus == "Pending"
                                           select trans).ToList();
-                        if (SearchInfo.Count == 0)
+
+                        if (Allrecords.Count >= Tasks.NoOfRecords)
                         {
-                            Tasks.Status = "Pending";
-                            Tasks.Date = DateTime.Now.ToString("dd/MM/yyyy");
-                            db.Insert(Tasks);
+                            var SearchInfo = (from trans in db.taskss
+                                              where trans._id == Tasks._id
+                                              select trans).ToList();
+                            if (SearchInfo.Count == 0)
+                            {
+                                Tasks.Status = "Pending";
+                                Tasks.Date = DateTime.Now.ToString("dd/MM/yyyy");
+                                db.Insert(Tasks);
+                            }
+                            else
+                            {
+                                db.Update(Tasks);
+                            }
+
+
+                            var records = (from trans in db.SearchInfo
+                                           where trans.Satus == "Pending"
+                                           select trans).Take(Tasks.NoOfRecords).ToList();
+
+                            if (records.Count > 0)
+                            {
+                                foreach (mSearchInfo info in records)
+                                {
+                                    info.ExamanerTaskID = Tasks._id;
+                                    info.Examiner = Tasks.AssignTo;
+                                    info.Satus = "Assigned";
+                                    db.Update(info);
+                                }
+                            }
+
                         }
                         else
                         {
-                            db.Update(Tasks);
-                        }
-
-
-                        var records = (from trans in db.SearchInfo
-                                       where trans.Satus == "Pending"
-                                       select trans).Take(Tasks.NoOfRecords).ToList();
-
-                        if (records.Count > 0)
-                        {
-                            foreach (mSearchInfo info in records)
+                            return Json(new
                             {
-                                info.ExamanerTaskID = Tasks._id;
-                                info.Examiner = Tasks.AssignTo;
-                                info.Satus = "Assigned";
-                                db.Update(info);
-                            }
+                                res = "err",
+                                msg = "No of allocated Records is greater than available records"
+
+                            });
                         }
-
                     }
-                    else
+
+                    else if (Tasks.Service == "Private Company Registration")
                     {
-                        return Json(new
+                        var Allrecords = (from trans in db.CompanyInfo
+                                          where trans.Status == "Pending"
+                                          select trans).ToList();
+
+                        if (Allrecords.Count >= Tasks.NoOfRecords)
                         {
-                            res = "err",
-                            msg = "No of allocated Records is greater than available records"
+                            var SearchInfo = (from trans in db.taskss
+                                              where trans._id == Tasks._id
+                                              select trans).ToList();
+                            if (SearchInfo.Count == 0)
+                            {
+                                Tasks.Status = "Pending";
+                                Tasks.Date = DateTime.Now.ToString("dd/MM/yyyy");
+                                db.Insert(Tasks);
+                            }
+                            else
+                            {
+                                db.Update(Tasks);
+                            }
 
-                        });
+
+                            var records = (from trans in db.CompanyInfo
+                                           where trans.Status == "Pending"
+                                           select trans).Take(Tasks.NoOfRecords).ToList();
+
+                            if (records.Count > 0)
+                            {
+                                foreach (mCompanyInfo info in records)
+                                {
+
+                                    info.Examiner = Tasks.AssignTo;
+                                    info.ExaminerTaskId = Tasks._id;
+                                    info.Status = "Assigned";
+                                    db.Update(info);
+                                }
+                            }
+
+                        }
+                        else
+                        {
+                            return Json(new
+                            {
+                                res = "err",
+                                msg = "No of allocated Records is greater than available records"
+
+                            });
+                        }
                     }
-
                 }
 
 
@@ -178,7 +232,7 @@ namespace Company_Reg.Controllers
             }
 
         }
-
+        
         [HttpGet("UpdateTask")]
         public JsonResult UpdateTask(string  TasksID)
         {
@@ -1246,6 +1300,7 @@ namespace Company_Reg.Controllers
             }
 
         }
+
         [HttpGet("GetCompanyApplication")]
         public JsonResult GetCompanyApplication()
         {
@@ -1290,6 +1345,7 @@ namespace Company_Reg.Controllers
             }
 
         }
+
         [HttpGet("GetCompanyApplicationBySearcRef")]
         public JsonResult GetCompanyApplicationBySearcRef(string SearchRef)
         {
@@ -1300,58 +1356,62 @@ namespace Company_Reg.Controllers
                 var ApplicationInfo = (from trans in db.CompanyInfo
                                        where trans.Search_Ref == SearchRef
                                        select trans).FirstOrDefault();
-
-                var Directors = (from transs in db.DirectorsPortifolio
-                                 where transs.Application_Ref == ApplicationInfo.Application_Ref
-                                 select transs).ToList();
-                List<mDirectorInfo> DirectorsInfomation = new List<mDirectorInfo>();
-
-                mMemorandum memos = new mMemorandum();
-                var mem = (from trans in db.memo
-                           where trans.Application_Ref == ApplicationInfo.Application_Ref
-                           select trans).FirstOrDefault();
-                List<mmainClause> objects = new List<mmainClause>();
-                if (memos != null)
+                if (ApplicationInfo != null)
                 {
-                    var memoobjects = (from trans in db.objects
-                                     where trans.memo_id == mem._id
-                                     select trans).ToList();
-                    mem.objects = memoobjects;
-                }
+                    var Directors = (from transs in db.DirectorsPortifolio
+                                     where transs.Application_Ref == ApplicationInfo.Application_Ref
+                                     select transs).ToList();
+                    List<mDirectorInfo> DirectorsInfomation = new List<mDirectorInfo>();
 
-                List<mMembersPotifolio> MembersPotifolios = new List<mMembersPotifolio>();
-                var members = (from transs in db.MembersPortifolio
-                               where transs.Application_Ref == ApplicationInfo.Application_Ref
-                               select transs).ToList();
-
-                List<mMembersInfo> memberss = new List<mMembersInfo>();
-                if (members.Count > 0) {
-     
-                    foreach (mMembersPotifolio mp in members)
+                    mMemorandum memos = new mMemorandum();
+                    var mem = (from trans in db.memo
+                               where trans.Application_Ref == ApplicationInfo.Application_Ref
+                               select trans).FirstOrDefault();
+                    List<mmainClause> objects = new List<mmainClause>();
+                    if (memos != null)
                     {
-                        memberss.Add((from transs in db.MembersInfo
-                                      where transs.member_id == mp.member_id
-                                      select transs).FirstOrDefault());
+                        var memoobjects = (from trans in db.objects
+                                           where trans.memo_id == mem._id
+                                           select trans).ToList();
+                        mem.objects = memoobjects;
                     }
+
+                    List<mMembersPotifolio> MembersPotifolios = new List<mMembersPotifolio>();
+                    var members = (from transs in db.MembersPortifolio
+                                   where transs.Application_Ref == ApplicationInfo.Application_Ref
+                                   select transs).ToList();
+
+                    List<mMembersInfo> memberss = new List<mMembersInfo>();
+                    if (members.Count > 0)
+                    {
+
+                        foreach (mMembersPotifolio mp in members)
+                        {
+                            memberss.Add((from transs in db.MembersInfo
+                                          where transs.member_id == mp.member_id
+                                          select transs).FirstOrDefault());
+                        }
+                    }
+
+
+
+                    mArticles articles = new mArticles();
+
+                    var articless = (from transs in db.articles
+                                     where transs.Application_Ref == ApplicationInfo.Application_Ref
+                                     select transs).FirstOrDefault();
+                    Applications.members = memberss;
+                    Applications.MembersPotifolios = members;
+                    Applications.memo = mem;
+
+                    Applications.articles = articless;
+                    Applications.CompanyInfo = ApplicationInfo;
+
                 }
 
 
 
-                mArticles articles = new mArticles();
-       
-                var articless = (from transs in db.articles
-                      where transs.Application_Ref == ApplicationInfo.Application_Ref
-                                 select transs).FirstOrDefault();
-                Applications.members = memberss;
-                Applications.MembersPotifolios = members;
-                Applications.memo = mem;
 
-                Applications.articles = articless;
-                Applications.CompanyInfo = ApplicationInfo;
-             
-                  
-
-               
 
                 //return success
                 return Json(new
@@ -1370,6 +1430,7 @@ namespace Company_Reg.Controllers
             }
 
         }
+
         [HttpGet("GetCompanyApplicationByUserID")]
         public JsonResult GetCompanyApplicationByUserID(string UserID)
         {
