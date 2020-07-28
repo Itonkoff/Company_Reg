@@ -7,6 +7,9 @@ using Company_Reg.Models;
 using Company_Reg.Database;
 using LinqToDB;
 using System.Diagnostics;
+using Company_Reg.Dtos;
+using Company_Reg.Constants;
+using Company_Reg.Helpers;
 
 // F
 
@@ -294,9 +297,10 @@ namespace Company_Reg.Controllers
             try
             {
                 var applicationID = "";
-               mSearchInfo SearchInfo = null;
+                mSearchInfo SearchInfo = null;
                 using (var db = new db())
                 {
+                    ServiceConstants constants = new ServiceConstants();
                     SearchInfo = (from trans in db.SearchInfo
                                       where trans.search_ID == tempsearchID
                                       select trans).FirstOrDefault();
@@ -306,14 +310,44 @@ namespace Company_Reg.Controllers
                     SearchInfo.SearchDate = DateTime.Now.ToString("dd/MM/yyyy");
 
                     var Ref = (from transs in db.ApplicationRef
-
                                select transs).FirstOrDefault();
+
                     SearchInfo.SearchRef = Ref.LastApplicationRef;
                     applicationID =  Ref.LastApplicationRef;
-                    db.Update(SearchInfo);
+
+                    
+                    var credit = (from cred in db.credits
+                                  where cred.UserId == SearchInfo.Searcher_ID
+                                  && cred.Service == constants.NAMESEARCH
+                                  && cred.ApplicationRef == null
+                                  select cred).FirstOrDefault();
+
+                    int creditIsUpdated = 0;
+                    if(credit != null)
+                    {
+                        credit.ApplicationRef = SearchInfo.SearchRef;
+                        creditIsUpdated = db.Update(credit);
+                    }
+                    else
+                    {
+                        return Json(
+                            new { 
+                                res = "err",
+                                msg = "You do not have Enough credits to Submit application" 
+                            });
+                    }
+
+                    if(creditIsUpdated == 1)
+                    {
+                        SearchInfo.Payment = "Paid";
+                        db.Update(SearchInfo);
+                    }
+                        
+                    
                     int last = int.Parse(Ref.LastApplicationRef.ToString()) + 1;
                     Ref.LastApplicationRef = last.ToString();
                     db.Update(Ref);
+
                     mApplications Applications = new mApplications();
 
                     Applications.ApplicationID = applicationID;
@@ -327,6 +361,8 @@ namespace Company_Reg.Controllers
 
                 }
 
+                new CommunicationHelper().SendSMS("Successfully submitted search", "263784920688");
+                new CommunicationHelper().SendEmail();
                 return Json(new
                 {
                     res = "ok",
@@ -347,6 +383,7 @@ namespace Company_Reg.Controllers
             }
 
         }
+
         [HttpPost("PayforSearch")]
         public JsonResult PayForSearch([FromBody] string search_ID)
         {
@@ -844,6 +881,7 @@ namespace Company_Reg.Controllers
             }
 
         }
+
         [HttpGet("GetNameSearchesBySearchID")]
         public JsonResult GetNameSearchesBySearchID(string ID)
         {
@@ -926,15 +964,37 @@ namespace Company_Reg.Controllers
                 NewCompany.CompanyInfo.Status = "Pending";
                 using (var db = new db())
                 {
-
-
-
                     var CoInfo = (from Dir in db.CompanyInfo
                                   where Dir.Application_Ref == NewCompany.CompanyInfo.Application_Ref
                                   select Dir).FirstOrDefault();
                     if (CoInfo == null)
                     {
-                        db.Insert(NewCompany.CompanyInfo);
+                        ServiceConstants constants = new ServiceConstants();
+                        var credit = (from cred in db.credits
+                                      where cred.UserId == NewCompany.CompanyInfo.AppliedBy
+                                      && cred.ApplicationRef == null
+                                      && cred.Service == constants.PVTLIMITEDENTITY
+                                      select cred).FirstOrDefault();
+
+                       
+                        if (credit != null)
+                        {
+                            credit.ApplicationRef = NewCompany.CompanyInfo.Search_Ref;
+                            if(db.Update(credit) == 1)
+                            {
+                                NewCompany.CompanyInfo.Payment = "Paid";
+                                db.Insert(NewCompany.CompanyInfo);
+                            }
+                        }
+                        else
+                        {
+                            return Json(
+                                new
+                                {
+                                    res = "err",
+                                    msg = "You do not have Enough credits to Submit application"
+                                });
+                        }
 
                     }
                     else
@@ -946,6 +1006,9 @@ namespace Company_Reg.Controllers
                             CoInfo.Country = NewCompany.CompanyInfo.Country;
                             CoInfo.Email = NewCompany.CompanyInfo.Email;
                             CoInfo.step = NewCompany.CompanyInfo.step;
+                            CoInfo.Telephone = NewCompany.CompanyInfo.Telephone;
+                            CoInfo.MobileNumber = NewCompany.CompanyInfo.MobileNumber;
+                            CoInfo.PostalAddress = NewCompany.CompanyInfo.PostalAddress;
                             db.Update(CoInfo);
                         }
                        
@@ -970,6 +1033,32 @@ namespace Company_Reg.Controllers
                 });
             }
 
+        }
+
+        [HttpPost("PostAddressHasQuery")]
+        public JsonResult PostAddressHasQuery([FromBody] Query query)
+        {
+            var db = new db();
+            var companyInfo = (from record in db.CompanyInfo
+                               where record.Application_Ref == query.ApplicationRef
+                               select record).FirstOrDefault();
+            companyInfo.HasQuery = query.HasQuery? 1 : 0;
+            companyInfo.Comment = query.Comment;
+            if(db.Update(companyInfo) == 1)
+            {
+                return Json(
+                     new { 
+                         res = "ok",
+                         msg = "Updated successfully"
+                     });
+            }
+
+            return Json(
+                 new
+                 {
+                     res = "err",
+                     msg = "Query was not updated"
+                 });
         }
 
         [HttpPost("SubmitCompanyApplication")]
@@ -1056,13 +1145,111 @@ namespace Company_Reg.Controllers
             }
 
         }
+
+        //[HttpPost("postCompanyApplicationMemo")]
+        //public JsonResult postCompanyApplicationMemo([FromBody] PostMemo NewMemo)
+        //{
+        //    try
+        //    {
+        //        //NewCompany.CompanyInfo.Application_Ref = Guid.NewGuid().ToString();
+
+        //        using (var db = new db())
+        //        {
+
+
+
+        //            var CoInfo = (from Dir in db.CompanyInfo
+        //                          where Dir.Application_Ref == NewMemo.memo.Application_Ref
+        //                          select Dir).FirstOrDefault();
+        //            if (CoInfo != null)
+        //            {
+        //                var CoInfoMemo = (from Dirm in db.memo
+        //                              where Dirm._id == NewMemo.memo._id
+        //                              select Dirm).FirstOrDefault();
+        //                 //to keep track of the step in coinfo
+        //                CoInfo.step = NewMemo.step;
+        //                db.Update(CoInfo);
+        //                if (CoInfoMemo == null)
+        //                {
+        //                    db.Insert(NewMemo.memo);
+        //                }
+        //                else
+        //                {
+        //                    db.Update(NewMemo.memo);
+        //                }
+
+        //                var CoMemoObjects = (from Diro in db.objects
+        //                              where Diro.memo_id == NewMemo.memo._id
+        //                              select Diro).ToList();
+        //                if (CoMemoObjects.Count==0)
+        //                {
+        //                    foreach(mmainClause obj in NewMemo.memo.objects)
+
+        //                    {
+
+        //                        db.Insert(obj);
+        //                    }   
+
+        //                }
+        //                else
+        //                {
+        //                    foreach (mmainClause obj in NewMemo.memo.objects)
+
+        //                    {
+        //                        var CoObjects = (from Diro in db.objects
+        //                                             where Diro.memo_id == obj._id
+        //                                             select Diro).ToList();
+        //                        if (CoObjects.Count == 0)
+        //                        {
+        //                            db.Insert(obj);
+        //                        }
+        //                        else
+        //                        {
+        //                            db.Update(obj);
+        //                        }
+
+        //                    }
+        //                }
+
+        //            }
+        //            else
+        //            {
+        //                return Json(new
+        //                {
+        //                    res = "err",
+        //                    msg = "Invalid Company Application Ref"
+
+        //                });
+        //            }
+        //        }
+
+        //        return Json(new
+        //        {
+        //            res = "ok",
+        //            msg = "Successfully Added  Company Registration Application",
+
+        //        });
+        //    }
+
+        //    catch (Exception ex)
+        //    {
+        //        return Json(new
+        //        {
+        //            res = "err",
+        //            msg = ex.Message
+
+        //        });
+        //    }
+
+        //}
+
         [HttpPost("postCompanyApplicationMemo")]
         public JsonResult postCompanyApplicationMemo([FromBody] PostMemo NewMemo)
         {
             try
             {
                 //NewCompany.CompanyInfo.Application_Ref = Guid.NewGuid().ToString();
-              
+
                 using (var db = new db())
                 {
 
@@ -1074,31 +1261,74 @@ namespace Company_Reg.Controllers
                     if (CoInfo != null)
                     {
                         var CoInfoMemo = (from Dirm in db.memo
-                                      where Dirm._id == NewMemo.memo._id
-                                      select Dirm).FirstOrDefault();
-                         //to keep track of the step in coinfo
+                                          where Dirm._id == NewMemo.memo._id
+                                          select Dirm).FirstOrDefault();
+                        //to keep track of the step in coinfo
                         CoInfo.step = NewMemo.step;
                         db.Update(CoInfo);
-                        if (CoInfoMemo == null)
+                        var liability = (from rm in db.liabilityClauses
+                                         where rm._id == NewMemo.memo.LiabilityClause._id
+                                         select rm).FirstOrDefault();
+                        if (liability == null)
                         {
-                            db.Insert(NewMemo.memo);
+                            var liabilities = (from rms in db.liabilityClauses
+                                               where rms.memo_id == NewMemo.memo._id
+                                               select rms).ToList();
+                            if (liabilities.Count > 0)
+                            {
+                                foreach (liabilityClause lc in liabilities)
+                                {
+                                    lc.Status = 1;
+                                    db.Update(lc);
+                                }
+                            }
+
+                            db.Insert(NewMemo.memo.LiabilityClause);
                         }
                         else
                         {
+                            db.Update(NewMemo.memo.LiabilityClause);
+                        }
+                        if (CoInfoMemo == null)
+                        {
+
+                     
+                            db.Insert(NewMemo.memo);
+
+
+                            db.Insert(NewMemo.memo.SharesClause);
+
+                        }
+                        else
+                        {
+
+                            db.Update(NewMemo.memo.SharesClause);
+
                             db.Update(NewMemo.memo);
                         }
 
                         var CoMemoObjects = (from Diro in db.objects
-                                      where Diro.memo_id == NewMemo.memo._id
-                                      select Diro).ToList();
-                        if (CoMemoObjects.Count==0)
+                                             where Diro.memo_id == NewMemo.memo._id
+                                             select Diro).ToList();
+
+
+                        if (CoMemoObjects.Count == 0)
                         {
-                            foreach(mmainClause obj in NewMemo.memo.objects)
+                            foreach (mmainClause obj in NewMemo.memo.objects)
 
                             {
+                                var CoMemoObjectsId = CoMemoObjects.Where(g => g.obj_num == obj.obj_num).ToList();
+                                if (CoMemoObjectsId.Count > 0)
+                                {
+                                    foreach (mmainClause mobj in CoMemoObjectsId)
+                                    {
+                                        mobj.Status = 1;
+                                        db.Update(mobj);
+                                    }
+                                }
 
                                 db.Insert(obj);
-                            }   
+                            }
 
                         }
                         else
@@ -1107,8 +1337,8 @@ namespace Company_Reg.Controllers
 
                             {
                                 var CoObjects = (from Diro in db.objects
-                                                     where Diro.memo_id == obj._id
-                                                     select Diro).ToList();
+                                                 where Diro.memo_id == obj._id
+                                                 select Diro).ToList();
                                 if (CoObjects.Count == 0)
                                 {
                                     db.Insert(obj);
@@ -1117,7 +1347,7 @@ namespace Company_Reg.Controllers
                                 {
                                     db.Update(obj);
                                 }
-                                
+
                             }
                         }
 
@@ -1221,8 +1451,6 @@ namespace Company_Reg.Controllers
         {
             try
             {
-
-
                 using (var db = new db())
                 {
                     foreach(mMembersInfo mb in NewMembers.members)
@@ -1277,6 +1505,12 @@ namespace Company_Reg.Controllers
                         }
                     }
 
+                    var name = (from n in db.SearchInfo 
+                               where n.SearchRef == NewMembers.ApplicationRef
+                               select n).FirstOrDefault();
+
+                    name.Used = 1;
+                    db.Update(name);
                    
                     
                 }
@@ -1367,14 +1601,32 @@ namespace Company_Reg.Controllers
                     var mem = (from trans in db.memo
                                where trans.Application_Ref == ApplicationInfo.Application_Ref
                                select trans).FirstOrDefault();
+                 
                     List<mmainClause> objects = new List<mmainClause>();
-                    if (memos != null)
-                    {
-                        var memoobjects = (from trans in db.objects
-                                           where trans.memo_id == mem._id
-                                           select trans).ToList();
-                        mem.objects = memoobjects;
+
+                   
+                        if (mem != null)
+                        {
+                        memos._id = mem._id;
+                        memos.Application_Ref = mem.Application_Ref;
+                            var memoobjects = (from trans in db.objects
+                                               where trans.memo_id == mem._id
+                                               select trans).ToList();
+                            memos.objects = memoobjects;
+                        var shareclauses = (from transs in db.shareClause
+                                            where transs.memo_id == mem._id
+                                            select transs).ToList();
+                        memos.SharesClause = shareclauses;
+
+                        var liabilityclauses = (from transss in db.liabilityClauses
+                                                where transss.memo_id == mem._id
+                                                select transss).ToList();
+                        memos.LiabilityClause = liabilityclauses;
+
                     }
+
+                    
+                    
 
                     List<mMembersPotifolio> MembersPotifolios = new List<mMembersPotifolio>();
                     var members = (from transs in db.MembersPortifolio
@@ -1402,7 +1654,7 @@ namespace Company_Reg.Controllers
                                      select transs).FirstOrDefault();
                     Applications.members = memberss;
                     Applications.MembersPotifolios = members;
-                    Applications.memo = mem;
+                    Applications.memo = memos;
 
                     Applications.articles = articless;
                     Applications.CompanyInfo = ApplicationInfo;
@@ -1480,7 +1732,7 @@ namespace Company_Reg.Controllers
                         select transs).FirstOrDefault();
                     Applications.members = memberss;
                     Applications.MembersPotifolios = members;
-                    Applications.memo = mem;
+                    //Applications.memo = mem;
 
                     Applications.articles = articless;
                     Applications.CompanyInfo = co;
@@ -1867,7 +2119,7 @@ namespace Company_Reg.Controllers
 
 
                 var AllTasks = (from transs in db.taskss
-                                where transs.AssignTo == UserID
+                                where transs.AssignTo == UserID 
                                 select transs).ToList();
 
 
@@ -1919,6 +2171,71 @@ namespace Company_Reg.Controllers
                 });
             }
 
+        }
+
+
+        [HttpGet("/Names/{userId}/GetUnusedNames")]
+        public IActionResult UnUsedNames(string userId)
+        {
+            try
+            {
+                var db = new db();
+                List<mSearch> searched = new List<mSearch>();
+                var SearchInfo = (from trans in db.SearchInfo
+                                  where trans.Searcher_ID == userId
+                                  && trans.Used == 0
+                                  select trans).ToList();
+               
+                     
+                foreach (mSearchInfo info in SearchInfo)
+                {
+                    var SearchDetails = (from transs in db.SearchDetails
+                                         where transs.Search_ID == info.search_ID
+                                         select transs).ToList();
+                    searched.Add(new mSearch { searchInfo = info, SearchNames = SearchDetails });
+
+                }
+
+                //return success
+                return Json(new
+                {
+                    res = "ok",
+                    data = Json(searched)
+                });
+            }
+            catch (Exception ex)
+            {
+                return Json(new
+                {
+                    res = "err",
+                    data = ex.Message
+                });
+            }
+        }
+
+
+        [HttpPost("/PvtRegistration/{applicationId}/RegisterOffice")]
+        public IActionResult RegisterOffice(string applicationId,[FromBody] RegisteredOffice office)
+        {
+            using(var db = new db())
+            {
+                office.OfficeId = Guid.NewGuid().ToString();
+
+                var application = (from appli in db.CompanyInfo
+                                   where appli.Search_Ref == applicationId
+                                   select appli).FirstOrDefault();
+
+                application.Office = office.OfficeId;
+
+                if(db.Update(application) == 1)
+                {
+                    if(db.Insert(office)== 1)
+                    {
+                        return Ok(office);
+                    }
+                }
+            }
+            return BadRequest("Could not register office");
         }
     }
 

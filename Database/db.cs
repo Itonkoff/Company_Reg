@@ -28,10 +28,14 @@ namespace Company_Reg.Database
 
         public ITable<mmainClause> objects => GetTable<mmainClause>();
         public ITable<mArticles> articles => GetTable<mArticles>();
-        public ITable<mMemorandum> memo => GetTable<mMemorandum>();
+        public ITable<PostmMemorandum> memo => GetTable<PostmMemorandum>();
 
-       
+        public ITable<sharesClause> shareClause  => GetTable<sharesClause>();
+        public ITable<liabilityClause> liabilityClauses  => GetTable<liabilityClause> ();
 
+        public ITable<Payment> payments => GetTable<Payment>();
+        public ITable<Credit> credits => GetTable<Credit>();
+        public ITable<RegisteredOffice> office => GetTable<RegisteredOffice>();
 
     }
 

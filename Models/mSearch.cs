@@ -37,6 +37,8 @@ namespace Company_Reg.Models
         public string SearchRef { get; set; }
         public string Payment { get; set; }
 
+        public int Used { get; set; }
+
 
     }
 

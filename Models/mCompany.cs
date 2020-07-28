@@ -4,6 +4,7 @@ using System;
 using System.Collections.Generic;
 using System.ComponentModel.DataAnnotations;
 using System.Linq;
+using System.Reflection;
 using System.Threading.Tasks;
 
 namespace Company_Reg.Models
@@ -65,16 +66,38 @@ namespace Company_Reg.Models
 
         public string ExaminerTaskId { get; set; }
 
+        public string Telephone { get; set; }
+
+        public string MobileNumber { get; set; }
+
+        public string PostalAddress { get; set; }
+        public string Office { get; set; }
+
     }
 
     public class PostMemo
 
     {
-        public mMemorandum memo { get; set; }
+        public PostmMemorandum memo { get; set; }
 
         public int step { get; set; }
     }
 
+    //public class PostmMemorandum
+    //{
+    //    [PrimaryKey]
+    //    public string _id { get; set; }
+
+    //    public string Application_Ref { get; set; }
+
+    //    public liabilityClause LiabilityClause { get; set; }
+
+
+    //    public sharesClause SharesClause { get; set; }
+
+    //    public List<mmainClause> objects { get; set; } = new List<mmainClause>();
+
+    //}
     public class mMemorandum
     {
         [PrimaryKey]
@@ -82,14 +105,30 @@ namespace Company_Reg.Models
 
         public string Application_Ref { get; set; }
 
-        public string liabilityClause { get; set; }
+        public List<liabilityClause> LiabilityClause { get; set; }
 
 
-        public string sharesClause { get; set; }
+        public List<sharesClause> SharesClause { get; set; }
 
         public List<mmainClause> objects { get; set; } = new List<mmainClause>();
 
     }
+
+    //public class mMemorandum
+    //{
+    //    [PrimaryKey]
+    //    public string _id { get; set; }
+
+    //    public string Application_Ref { get; set; }
+
+    //    public string liabilityClause { get; set; }
+
+
+    //    public string sharesClause { get; set; }
+
+    //    public List<mmainClause> objects { get; set; } = new List<mmainClause>();
+
+    //}
 
     public class postArticles
     {
@@ -120,7 +159,7 @@ namespace Company_Reg.Models
         public string _id { get; set; }
         public string obj_num { get; set; }
         public string memo_id { get; set; }
-
+        public int Status { get; set; }
         public string objective { get; set; }
         public string objType { get; set; }
         public int HasQuery { get; set; }
@@ -166,6 +205,7 @@ namespace Company_Reg.Models
     {
         public string _id { get; set; }
         public int step { get; set; }
+        public string ApplicationRef { get; set; }
         public List<mMembersInfo> members { get; set; }
 
         public List<mMembersPotifolio> membersPotifolio { get; set; }
@@ -210,5 +250,95 @@ namespace Company_Reg.Models
         public List<mMembersInfo> members { get; set; } = new List<mMembersInfo>();
         
 
+    }
+
+    //public class mMemorandum
+    //{
+    //    [PrimaryKey]
+    //    public string _id { get; set; }
+
+    //    public string Application_Ref { get; set; }
+
+    //    public liabilityClause LiabilityClause { get; set; }
+
+
+    //    public sharesClause SharesClause { get; set; }
+
+    //    public List<mmainClause> objects { get; set; } = new List<mmainClause>();
+
+    //}
+
+    public class sharesClause
+    {
+        public string _id { get; set; }
+
+        public string description { get; set; }
+
+        public string memo_id { get; set; }
+
+        public int HasQuery { get; set; }
+
+        public string Comment { get; set; }
+
+        public int Status { get; set; }
+    }
+    public class liabilityClause
+    {
+        public string _id { get; set; }
+
+        public string description { get; set; }
+
+        public string memo_id { get; set; }
+
+        public int HasQuery { get; set; }
+
+        public string Comment { get; set; }
+
+        public int Status { get; set; }
+    }
+
+    public class PostmMemorandum
+    {
+        [PrimaryKey]
+        public string _id { get; set; }
+
+        public string Application_Ref { get; set; }
+
+        public liabilityClause LiabilityClause { get; set; }
+
+
+        public sharesClause SharesClause { get; set; }
+
+        public List<mmainClause> objects { get; set; } = new List<mmainClause>();
+
+    }
+    public class mMeMorandum
+    {
+        [PrimaryKey]
+        public string _id { get; set; }
+
+        public string Application_Ref { get; set; }
+
+        public List<liabilityClause> LiabilityClause { get; set; }
+
+
+        public List<sharesClause> SharesClause { get; set; }
+
+        public List<mmainClause> objects { get; set; } = new List<mmainClause>();
+
+    }
+
+    public class RegisteredOffice
+    {
+        [PrimaryKey]
+        public string OfficeId { get; set; }
+        public string PhysicalAddress { get; set; }
+        public string PostalAddress { get; set; }
+        public string City { get; set; }
+        public string TelephoneNumber { get; set; }
+        public string MobileNumber { get; set; }
+        public string EmailAddress { get; set; }
+        public int HasQuery { get; set; }
+        public string Comment { get; set; }
     }
 }
