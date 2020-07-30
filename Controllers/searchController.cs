@@ -1383,8 +1383,8 @@ namespace Company_Reg.Controllers
 
         }
 
-        [HttpPost("postCompanyApplicationArticles")]
-        public JsonResult postCompanyApplicationArticles([FromBody] postArticles NewArticles)
+        [HttpPost("{applicationID}/postCompanyApplicationArticles")]
+        public JsonResult postCompanyApplicationArticles(string applicationID, [FromBody] postArticles NewArticles)
         {
             try
             {
@@ -1397,11 +1397,13 @@ namespace Company_Reg.Controllers
                     var CoInfo = (from Dir in db.CompanyInfo
                                   where Dir.Application_Ref == NewArticles.Articles.Application_Ref
                                   select Dir).FirstOrDefault();
+
                     if (CoInfo != null)
                     {
                         var CoArt = (from Dir in db.articles
                                       where Dir._id == NewArticles.Articles._id
                                       select Dir).FirstOrDefault();
+
                         CoInfo.step = NewArticles.step;
                         db.Update(CoInfo);
                         if (CoArt == null)
@@ -1414,6 +1416,14 @@ namespace Company_Reg.Controllers
                             db.Update(NewArticles.Articles);
                         }
 
+                        var name = (from q in db.SearchInfo
+                                    where q.SearchRef == applicationID
+                                    select q).FirstOrDefault();
+
+                        if(name.Used != 1)
+                            name.Used = 1;
+
+                        db.Update(name);
                     }
                     else
                     {
@@ -1425,6 +1435,8 @@ namespace Company_Reg.Controllers
                         });
                     }
                 }
+
+                
 
                 return Json(new
                 {
@@ -1505,12 +1517,12 @@ namespace Company_Reg.Controllers
                         }
                     }
 
-                    var name = (from n in db.SearchInfo 
-                               where n.SearchRef == NewMembers.ApplicationRef
-                               select n).FirstOrDefault();
+                    //var name = (from n in db.SearchInfo 
+                    //           where n.SearchRef == NewMembers.ApplicationRef
+                    //           select n).FirstOrDefault();
 
-                    name.Used = 1;
-                    db.Update(name);
+                    //name.Used = 1;
+                    //db.Update(name);
                    
                     
                 }
@@ -2236,6 +2248,13 @@ namespace Company_Reg.Controllers
                 }
             }
             return BadRequest("Could not register office");
+        }
+
+
+        [HttpPost("/PvtRegistration/{applicationId}/Approve")]
+        public IActionResult ApprovePvtEntityApplication(string applicationId)
+        {
+            return BadRequest("Could not approve application");
         }
     }
 
