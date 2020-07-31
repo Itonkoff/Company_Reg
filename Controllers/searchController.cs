@@ -42,13 +42,13 @@ namespace Company_Reg.Controllers
                     }
                     foreach (mSearchNames item in NewSearch.SearchNames)
                     {
-                        var SearchDetails = (from transs in db.SearchDetails
+                        var SearchDetails = (from transs in db.SearchNames
                                              where transs.Name == item.Name
                                              select transs).FirstOrDefault();
 
                         if (SearchDetails == null)
                         {
-                            var SearchDetailsupdate1 = (from transs in db.SearchDetails
+                            var SearchDetailsupdate1 = (from transs in db.SearchNames
                                                         where transs.Name_ID == item.Name_ID
                                                         select transs).FirstOrDefault();
                             if (SearchDetailsupdate1 != null)
@@ -67,7 +67,7 @@ namespace Company_Reg.Controllers
                         }
                         else
                         {
-                            var SearchDetailsupdate = (from transs in db.SearchDetails
+                            var SearchDetailsupdate = (from transs in db.SearchNames
                                                        where transs.Name == item.Name && transs.Name_ID == item.Name_ID
                                                        select transs).FirstOrDefault();
                             if (SearchDetailsupdate != null)
@@ -434,7 +434,7 @@ namespace Company_Reg.Controllers
                 using (var db = new db())
                 {
 
-                    var DirInfo = (from Search in db.SearchDetails
+                    var DirInfo = (from Search in db.SearchNames
                                    where Search.Name_ID == searchNames.Name_ID
                                    select Search).FirstOrDefault();
 
@@ -646,7 +646,7 @@ namespace Company_Reg.Controllers
                                   select trans).ToList();
                 foreach (mSearchInfo info in SearchInfo)
                 {
-                    var SearchDetails = (from transs in db.SearchDetails
+                    var SearchDetails = (from transs in db.SearchNames
                                          where transs.Search_ID == info.search_ID
                                          select transs).ToList();
                     searched.Add(new mSearch { searchInfo = info, SearchNames = SearchDetails });
@@ -678,7 +678,7 @@ namespace Company_Reg.Controllers
             {
                 var db = new db();
 
-                var SearchDetails = (from transs in db.SearchDetails
+                var SearchDetails = (from transs in db.SearchNames
                                      where transs.Name == name
                                      select transs).FirstOrDefault();
 
@@ -718,7 +718,7 @@ namespace Company_Reg.Controllers
             {
                 var db = new db();
 
-                var SearchDetails = (from transs in db.SearchDetails
+                var SearchDetails = (from transs in db.SearchNames
                                      where transs.Status == "Pending" || transs.Status == "Reserved" || transs.Status == "Registered"
                                      select transs).ToList();
                 // var resultList = SearchDetails.Where(x => x.Name.Contains("abc")).ToList();
@@ -775,7 +775,7 @@ namespace Company_Reg.Controllers
             {
                 var db = new db();
 
-                var SearchDetails = (from transs in db.SearchDetails
+                var SearchDetails = (from transs in db.SearchNames
                                      where transs.Status == "Pending" || transs.Status == "Reserved" || transs.Status == "Registered"
                                      select transs).ToList();
                 var resultListContains = SearchDetails.Where(x => x.Name == name).ToList();
@@ -821,7 +821,7 @@ namespace Company_Reg.Controllers
                                   select trans).ToList();
                 foreach (mSearchInfo info in SearchInfo)
                 {
-                    var SearchDetails = (from transs in db.SearchDetails
+                    var SearchDetails = (from transs in db.SearchNames
                                          where transs.Search_ID == info.search_ID
                                          select transs).ToList();
                     searched.Add(new mSearch { searchInfo = info, SearchNames = SearchDetails });
@@ -857,7 +857,7 @@ namespace Company_Reg.Controllers
                                   select trans).ToList();
                 foreach (mSearchInfo info in SearchInfo)
                 {
-                    var SearchDetails = (from transs in db.SearchDetails
+                    var SearchDetails = (from transs in db.SearchNames
                                          where transs.Search_ID == info.search_ID
                                          select transs).ToList();
                     searched.Add(new mSearch { searchInfo = info, SearchNames = SearchDetails });
@@ -894,7 +894,7 @@ namespace Company_Reg.Controllers
                                   select trans).ToList();
                 foreach (mSearchInfo info in SearchInfo)
                 {
-                    var SearchDetails = (from transs in db.SearchDetails
+                    var SearchDetails = (from transs in db.SearchNames
                                          where transs.Search_ID == info.search_ID
                                          select transs).ToList();
                     searched.Add(new mSearch { searchInfo = info, SearchNames = SearchDetails });
@@ -931,7 +931,7 @@ namespace Company_Reg.Controllers
                                   select trans).ToList();
                 foreach (mSearchInfo info in SearchInfo)
                 {
-                    var SearchDetails = (from transs in db.SearchDetails
+                    var SearchDetails = (from transs in db.SearchNames
                                          where transs.Search_ID == info.search_ID
                                          select transs).ToList();
                     searched.Add(new mSearch { searchInfo = info, SearchNames = SearchDetails });
@@ -2201,7 +2201,7 @@ namespace Company_Reg.Controllers
                      
                 foreach (mSearchInfo info in SearchInfo)
                 {
-                    var SearchDetails = (from transs in db.SearchDetails
+                    var SearchDetails = (from transs in db.SearchNames
                                          where transs.Search_ID == info.search_ID
                                          select transs).ToList();
                     searched.Add(new mSearch { searchInfo = info, SearchNames = SearchDetails });
@@ -2252,9 +2252,238 @@ namespace Company_Reg.Controllers
 
 
         [HttpPost("/PvtRegistration/{applicationId}/Approve")]
-        public IActionResult ApprovePvtEntityApplication(string applicationId)
+        public IActionResult ApprovePvtEntityApplication(string applicationId,[FromBody] string approver)
         {
+            using(var db = new db())
+            {
+                db.BeginTransaction();
+
+                var companyRegNum = (from q in db.CompaniesRef
+                                     select q).FirstOrDefault();
+
+                if(companyRegNum != null)
+                {
+                    companyRegNum.LastRegNo += 1;
+
+                    var companyInfo = (from p in db.CompanyInfo
+                                       where p.Application_Ref == applicationId
+                                       select p).FirstOrDefault();
+
+                    if(companyInfo == null)
+                    {
+                        return NotFound("Application was not found");
+                    }
+
+                    companyInfo.RegNumber = companyRegNum.Prefix + " " + companyRegNum.Year + "/" + companyRegNum.LastRegNo.ToString();
+                    companyInfo.Status = "Approved";
+                    companyInfo.Approved_By = approver;
+
+                    if ((db.Update(companyRegNum) + db.Update(companyInfo)) == 2)
+                    {
+                        db.CommitTransaction();
+                        return Ok();
+                    }
+
+                    db.RollbackTransaction();                    
+                }
+            }
+
             return BadRequest("Could not approve application");
+        }
+
+
+        [HttpGet("/{applicant}/RegisteredEntities")]
+        public IActionResult GetRegisteredEntities(string applicant)
+        {
+            using(var db = new db())
+            {
+                List<RegisteredPvtEntitySummaryDto> registeredEntitiesSummary = new List<RegisteredPvtEntitySummaryDto>();
+
+                var approvedApplications = (from q in db.CompanyInfo
+                                            where q.AppliedBy == applicant
+                                            && q.Status == "Approved"
+                                            select q).ToList();
+
+                if(approvedApplications != null && approvedApplications.Count > 0)
+                {
+                    foreach(var application in approvedApplications)
+                    {
+                        var nameInfo = (from r in db.SearchInfo
+                                        where r.SearchRef == application.Search_Ref
+                                        select r).FirstOrDefault();
+
+                        if(nameInfo != null)
+                        {
+
+                            var names = (from s in db.SearchNames
+                                         where s.Search_ID == nameInfo.search_ID
+                                         select s).ToList();
+
+                            if(names != null)
+                            {
+
+                                var name = names.Where(a => a.Status == "Reserved").FirstOrDefault();
+                                
+                                if (name != null)
+                                {
+
+                                    RegisteredPvtEntitySummaryDto summary = new RegisteredPvtEntitySummaryDto
+                                    {
+                                        ApplicationId = application.Application_Ref,
+                                        TypeOfEntity = nameInfo.Search_For,
+                                        RegisteredName = name.Name,
+                                        RegisteredNumber = application.RegNumber,
+                                        Designation = nameInfo.Desigination
+                                    };
+
+                                    registeredEntitiesSummary.Add(summary);
+                                }
+                            }                            
+                        }
+                    }
+
+                    return Ok(registeredEntitiesSummary);
+                }
+
+            }
+            return NotFound("Application Had some missing information");
+        } 
+
+
+        [HttpGet("/{applicationId}/Details")]
+        public IActionResult GetApplicationForReview(string applicationId)
+        {
+            ApplicationForReviewDto applicationToSend = new ApplicationForReviewDto();
+            using (var db =  new db())
+            {
+                var application = (from p in db.CompanyInfo
+                                   where p.Application_Ref == applicationId
+                                   select p).FirstOrDefault();
+
+                if (application != null)
+                {
+                    var nameInfo = (from r in db.SearchInfo
+                                    where r.SearchRef == application.Search_Ref
+                                    select r).FirstOrDefault();
+
+                    if (nameInfo != null)
+                    {
+
+                        var names = (from s in db.SearchNames
+                                     where s.Search_ID == nameInfo.search_ID
+                                     select s).ToList();
+
+                        if (names != null)
+                        {
+                            var name = names.Where(a => a.Status == "Reserved").FirstOrDefault();
+                            if (name != null)
+                            {
+                                NameForReview nameForReview = new NameForReview
+                                {
+                                    SearchId = nameInfo.search_ID,
+                                    Name = name.Name,
+                                    TypeOfEntity = nameInfo.Search_For,
+                                    Justification = nameInfo.Justification
+                                };
+                                applicationToSend.name = nameForReview;
+                            }
+                        }
+                    }
+
+                    var office = (from t in db.office
+                                  where t.OfficeId == application.Office
+                                  select t).FirstOrDefault();
+
+                    applicationToSend.office = office;
+
+                    var potfolios = (from u in db.MembersPortifolio
+                                     where u.Application_Ref == applicationId
+                                     select u).ToList();
+
+                    if (potfolios != null && potfolios.Count > 0)
+                    {
+                        foreach(var potfolio in potfolios)
+                        {
+                            var member = (from v in db.MembersInfo
+                                          where v.ID_No == potfolio.member_id
+                                          select v).FirstOrDefault();
+
+                            List<string> roles = new List<string>();
+
+                            if (potfolio.IsCoSec == 1)
+                            {
+                                roles.Add("Secretary");
+                            }
+
+                            if(potfolio.IsDirector == 1)
+                            {
+                                roles.Add("Director");
+                            }
+
+                            if(potfolio.IsMember == 1)
+                            {
+                                roles.Add("Member");
+                            }
+
+                            if (member != null)
+                            {
+                                MemberForReview memberForReview = new MemberForReview
+                                {
+                                    MemberType = member.memberType,
+                                    Name = member.Names,
+                                    Surname = member.Surname,
+                                    PhysicalAddress = member.Street,
+                                    NationalId = member.ID_No,
+                                    Nationality = member.Nationality,
+                                    NumberOfShares = potfolio.number_of_shares,
+                                    Roles = roles
+                                };
+                                applicationToSend.members.Add(memberForReview);
+                            }
+                        }
+                    }
+
+                    var memo = (from w in db.memo
+                                where w.Application_Ref == applicationId
+                                select w).FirstOrDefault();
+
+                    if(memo != null)
+                    {
+                        var liability = (from y in db.liabilityClauses
+                                         where y.memo_id == memo._id
+                                         select y).FirstOrDefault();
+
+                        var shareCloz = (from z in db.shareClause
+                                         where z.memo_id == memo._id
+                                         select z).FirstOrDefault();
+
+                        MemoForReview memoForReview = new MemoForReview();
+                        memoForReview.MemoId = memo._id;
+                        if (liability != null)
+                        {
+                            memoForReview.LiabilityClause = liability.description;
+                        }
+
+                        if(shareCloz != null)
+                        {
+                            memoForReview.ShareClause = shareCloz.description;
+                        }
+                        applicationToSend.memo = memoForReview;
+                    }
+                    
+
+                    var articles = (from x in db.articles
+                                    where x.Application_Ref == applicationId
+                                    select x).ToList();
+
+                    if (articles != null)
+                    {
+                        applicationToSend.articles = articles;
+                    }
+                }
+                return Ok(applicationToSend);
+            }
+            return NotFound("Application was not found.");
         }
     }
 

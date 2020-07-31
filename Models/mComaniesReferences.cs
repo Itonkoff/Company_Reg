@@ -9,7 +9,7 @@ namespace Company_Reg.Models
     public class mCompaniesReferences
     {
         [PrimaryKey]
-        public string _id { get; set; }
+        public string id { get; set; }
         public string LastRegNo { get; set; }
       public string Year { get; set; }
       public string Prefix { get; set; }

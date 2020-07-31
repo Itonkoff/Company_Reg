@@ -13,7 +13,7 @@ namespace Company_Reg.Database
         public db() : base(Database.sql_server_db.configuration) { }
 
         public ITable<mSearchInfo> SearchInfo => GetTable<mSearchInfo>();
-        public ITable<mSearchNames> SearchDetails => GetTable<mSearchNames>();
+        public ITable<mSearchNames> SearchNames => GetTable<mSearchNames>();
         public ITable<mCompanyInfo> CompanyInfo => GetTable<mCompanyInfo>();
         public ITable<mDirectorInfo> DirectorInfo => GetTable<mDirectorInfo>();
         public ITable<mMembersInfo> MembersInfo => GetTable<mMembersInfo>();
