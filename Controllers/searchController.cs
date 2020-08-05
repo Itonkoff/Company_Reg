@@ -2485,6 +2485,47 @@ namespace Company_Reg.Controllers
             }
             return NotFound("Application was not found.");
         }
+
+
+
+        [HttpGet("/{searchRef}/Namesearch/{officeId}/Office")]
+        public IActionResult GetNameSearchBySearchRef(string searchRef, string officeId)
+        {
+            using (var db = new db())
+            {
+                NameAddressResponceDto nameAddressResponce = new NameAddressResponceDto();
+                var searchInfo = (from p in db.SearchInfo
+                                  where p.SearchRef == searchRef
+                                  select p).FirstOrDefault();
+
+                if (searchInfo != null)
+                {
+                    var names = (from q in db.SearchNames
+                                 where q.Search_ID == searchInfo.search_ID
+                                 select q).ToList();
+
+                    if (names != null && names.Count > 0)
+                    {
+                        var name = names.Where(r => r.Status.Equals("Reserved")).FirstOrDefault();
+                        nameAddressResponce.Name = name.Name;
+                        nameAddressResponce.Type = searchInfo.Search_For;
+                        nameAddressResponce.Justification = searchInfo.Justification;
+
+                        var office = (from s in db.office
+                                      where s.OfficeId == officeId
+                                      select s).FirstOrDefault();
+
+                        if (office != null)
+                        {
+                            nameAddressResponce.Office = office;
+                            return Ok(nameAddressResponce);
+                        }
+                    }
+                }
+
+            }
+            return NotFound("Your applixcation was not found");
+        }
     }
 
 

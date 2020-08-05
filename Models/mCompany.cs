@@ -187,11 +187,19 @@ namespace Company_Reg.Models
     {
         [PrimaryKey]
         public string company_member_id { get; set; }
+
         public string member_id { get; set; }
-        
+
+        public int OrdinaryShares { get; set; }
+
+        public int PreferenceShares { get; set; }
+
         public int number_of_shares { get; set; }
+
         public string Date_Of_Appointment { get; set; }
+
         public string Date_Of_Resignation { get; set; }
+
         public string Application_Ref { get; set; }
 
         public int IsMember { get; set; }
