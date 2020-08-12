@@ -24,7 +24,6 @@ namespace Company_Reg.Controllers
         {
             try
             {
-
                 using (var db = new db())
                 {
                     var SearchInfo = (from trans in db.SearchInfo
@@ -32,14 +31,14 @@ namespace Company_Reg.Controllers
                                       select trans).ToList();
                     if (SearchInfo.Count == 0)
                     {
-                        NewSearch.searchInfo.SearchDate = DateTime.Now.ToString("dd/MM/yyyy");
-
+                        NewSearch.searchInfo.SearchDate = DateTime.Now.Date.ToString();
                         db.Insert(NewSearch.searchInfo);
                     }
                     else
                     {
                         db.Update(NewSearch.searchInfo);
                     }
+
                     foreach (mSearchNames item in NewSearch.SearchNames)
                     {
                         var SearchDetails = (from transs in db.SearchNames
@@ -54,7 +53,6 @@ namespace Company_Reg.Controllers
                             if (SearchDetailsupdate1 != null)
                             {
                                 item.Status = "Pending";
-                                item.Search_ID = NewSearch.searchInfo.search_ID;
                                 db.Update(item);
                             }
                             else
@@ -888,18 +886,22 @@ namespace Company_Reg.Controllers
             try
             {
                 var db = new db();
-                List<mSearch> searched = new List<mSearch>();
+                mSearch searched = null;
+
                 var SearchInfo = (from trans in db.SearchInfo
                                   where trans.search_ID == ID
-                                  select trans).ToList();
-                foreach (mSearchInfo info in SearchInfo)
-                {
-                    var SearchDetails = (from transs in db.SearchNames
-                                         where transs.Search_ID == info.search_ID
-                                         select transs).ToList();
-                    searched.Add(new mSearch { searchInfo = info, SearchNames = SearchDetails });
+                                  select trans).FirstOrDefault();
+                var SearchDetails = (from transs in db.SearchNames
+                                     where transs.Search_ID == ID
+                                     select transs).ToList();
 
-                }
+                searched = new mSearch
+                {
+                    searchInfo = SearchInfo,
+                    SearchNames = SearchDetails
+                };
+                
+                
 
                 //return success
                 return Json(new
@@ -2227,8 +2229,7 @@ namespace Company_Reg.Controllers
 
 
         [HttpPost("/PvtRegistration/{applicationId}/RegisterOffice")]
-        public IActionResult RegisterOffice(string applicationId,[FromBody] RegisteredOffice office)
-        {
+        public IActionResult RegisterOffice(string applicationId,[FromBody] RegisteredOffice office){
             using(var db = new db())
             {
                 office.OfficeId = Guid.NewGuid().ToString();

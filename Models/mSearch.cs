@@ -39,6 +39,8 @@ namespace Company_Reg.Models
 
         public int Used { get; set; }
 
+        public string Reason_For_Search { get; set; }
+
 
     }
 
